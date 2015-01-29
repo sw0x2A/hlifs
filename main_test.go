@@ -7,8 +7,16 @@ import (
 
 func TestHashFile(t *testing.T) {
 	files := [...]FileData{
-		{name: "test/datafile1", hash: []byte{178, 129, 202, 107, 136, 158, 162, 98, 129, 252, 24, 214, 195, 171, 38, 33}},
-		{name: "test/textfile1", hash: []byte{67, 189, 211, 69, 178, 12, 210, 76, 57, 147, 48, 77, 165, 188, 7, 112}},
+		{
+			name: "test/datafile1",
+			// hash, _ := hex.DecodeString("b281ca6b889ea26281fc18d6c3ab2621")
+			hash: []byte{178, 129, 202, 107, 136, 158, 162, 98, 129, 252, 24, 214, 195, 171, 38, 33},
+		},
+		{
+			name: "test/textfile1",
+			// hash, _ := hex.DecodeString("43bdd345b20cd24c3993304da5bc0770")
+			hash: []byte{67, 189, 211, 69, 178, 12, 210, 76, 57, 147, 48, 77, 165, 188, 7, 112},
+		},
 	}
 	for _, file := range files {
 		in, out := file.name, file.hash
