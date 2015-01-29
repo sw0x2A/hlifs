@@ -1,4 +1,4 @@
-package main
+package hlifs
 
 import (
 	"crypto/md5"
