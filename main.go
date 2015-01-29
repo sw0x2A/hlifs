@@ -6,38 +6,38 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"syscall"
 	"path/filepath"
+	"syscall"
 )
 
 type FileData struct {
-		name 	string
-		hash 	[]byte
-        dev     uint64
-        inode   uint64
-        nlink   uint64
-        mode    uint32
-        uid     uint32
-        gid     uint32
-        size 	int64
+	name  string
+	hash  []byte
+	dev   uint64
+	inode uint64
+	nlink uint64
+	mode  uint32
+	uid   uint32
+	gid   uint32
+	size  int64
 }
 
 var fdb []FileData
 
 func HashFile(filePath string) ([]byte, error) {
-  var result []byte
-  file, err := os.Open(filePath)
-  if err != nil {
-    return result, err
-  }
-  defer file.Close()
+	var result []byte
+	file, err := os.Open(filePath)
+	if err != nil {
+		return result, err
+	}
+	defer file.Close()
 
-  hash := md5.New()
-  if _, err := io.Copy(hash, file); err != nil {
-    return result, err
-  }
+	hash := md5.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return result, err
+	}
 
-  return hash.Sum(result), nil
+	return hash.Sum(result), nil
 }
 
 /*
@@ -66,28 +66,27 @@ func HashFile(filePath string) ([]byte, error) {
          * Sys() interface{}   // underlying data source (can return nil)
 */
 
+func walker(path string, f os.FileInfo, err error) error {
+	if !f.IsDir() {
+		fd := FileData{
+			name:  path,
+			dev:   f.Sys().(*syscall.Stat_t).Dev,
+			inode: f.Sys().(*syscall.Stat_t).Ino,
+			nlink: f.Sys().(*syscall.Stat_t).Nlink,
+			mode:  f.Sys().(*syscall.Stat_t).Mode,
+			uid:   f.Sys().(*syscall.Stat_t).Uid,
+			gid:   f.Sys().(*syscall.Stat_t).Gid,
+			size:  f.Size(),
+		}
+		fdb = append(fdb, fd)
+	}
+	return err
+}
 
- func walker(path string, f os.FileInfo, err error) error {
-   if !f.IsDir() {
-	   fd := FileData{
-			name:	path,
-			dev:	f.Sys().(*syscall.Stat_t).Dev,
-			inode:	f.Sys().(*syscall.Stat_t).Ino,
-			nlink:	f.Sys().(*syscall.Stat_t).Nlink,
-			mode:	f.Sys().(*syscall.Stat_t).Mode,
-			uid:	f.Sys().(*syscall.Stat_t).Uid,
-			gid:	f.Sys().(*syscall.Stat_t).Gid,
-			size:	f.Size(),
-			}
-	   fdb = append(fdb, fd)
-   }
-   return err
- }
- 
 func main() {
 	flag.Parse()
 	dir := flag.Arg(0)
-	
+
 	src, err := os.Stat(dir)
 	if err != nil {
 		panic(err)
