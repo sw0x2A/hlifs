@@ -1,4 +1,4 @@
-package hlifs
+package main
 
 import (
 	"bytes"

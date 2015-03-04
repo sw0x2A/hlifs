@@ -1,28 +1,30 @@
-package hlifs
+package main
 
 import (
 	"crypto/md5"
-	"flag"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"syscall"
+
+	"github.com/codegangsta/cli"
 )
 
 type FileData struct {
-	name  string
-	hash  []byte
-	dev   uint64
-	inode uint64
-	nlink uint64
-	mode  uint32
-	uid   uint32
-	gid   uint32
-	size  int64
+	name  string // Full path
+	hash  []byte // MD5 checksum
+	dev   uint64 // Device ID
+	inode uint64 // Inode number
+	nlink uint64 // Number of hard links
+	mode  uint32 // File permissions
+	uid   uint32 // User ID
+	gid   uint32 // Group ID
+	size  int64  // File size in bytes
 }
 
-var fdb []FileData
+var fdb []*FileData
 
 func HashFile(filePath string) ([]byte, error) {
 	var result []byte
@@ -40,31 +42,15 @@ func HashFile(filePath string) ([]byte, error) {
 	return hash.Sum(result), nil
 }
 
-/*
-   stat := fi.Sys().(*syscall.Stat_t)
-   type Stat_t struct {
-        Dev       uint64
-        Ino       uint64
-        Nlink     uint64
-        Mode      uint32
-        Uid       uint32
-        Gid       uint32
-        X__pad0   int32
-        Rdev      uint64
-        Size      int64
-        Blksize   int64
-        Blocks    int64
-        Atim      Timespec
-        Mtim      Timespec
-        Ctim      Timespec
-        X__unused [3]int64
-}		 * Name() string       // base name of the file
-         * Size() int64        // length in bytes for regular files; system-dependent for others
-         * Mode() FileMode     // file mode bits
-         * ModTime() time.Time // modification time
-         * IsDir() bool        // abbreviation for Mode().IsDir()
-         * Sys() interface{}   // underlying data source (can return nil)
-*/
+func CompareFileData(a, b FileData) bool {
+	if &a == &b {
+		return true
+	}
+	if a.dev != b.dev || a.uid != b.uid || a.gid != b.gid || a.mode != b.mode {
+		return false
+	}
+	return true
+}
 
 func walker(path string, f os.FileInfo, err error) error {
 	if !f.IsDir() {
@@ -78,32 +64,64 @@ func walker(path string, f os.FileInfo, err error) error {
 			gid:   f.Sys().(*syscall.Stat_t).Gid,
 			size:  f.Size(),
 		}
-		fdb = append(fdb, fd)
+		fdb = append(fdb, &fd)
 	}
 	return err
 }
 
 func main() {
-	flag.Parse()
-	dir := flag.Arg(0)
+	app := cli.NewApp()
+	app.Name = "hlifs"
+	app.Usage = "Hard link identical files"
 
-	src, err := os.Stat(dir)
-	if err != nil {
-		panic(err)
+	app.Action = func(c *cli.Context) {
+		if len(c.Args()) > 0 {
+			dir := c.Args()[0]
+			src, err := os.Stat(dir)
+			if err != nil {
+				panic(err)
+			}
+
+			if !src.IsDir() {
+				fmt.Println("Source is not a directory")
+				os.Exit(1)
+			}
+
+			err = filepath.Walk(dir, walker)
+			if err != nil {
+				panic(err)
+			}
+
+			// Group by file size
+			smap := make(map[int64][]*FileData)
+			for _, file := range fdb {
+				smap[file.size] = append(smap[file.size], file)
+			}
+
+			// If more than one file with same size:
+			// create md5sum of all files with same size
+			// compare and hardlink if possible
+			for _, sfile := range smap {
+				if len(sfile) > 1 {
+					hmap := make(map[string][]*FileData)
+					for _, hfile := range sfile {
+						h, err := HashFile(hfile.name)
+						hstring := hex.EncodeToString(h)
+						if err == nil {
+							hmap[hstring] = append(hmap[hstring], hfile)
+						}
+					}
+
+					for _, cfile := range hmap {
+						if len(cfile) > 1 {
+							fmt.Printf("Files with hash: %s\n", cfile)
+						}
+					}
+				}
+			}
+
+		}
 	}
 
-	if !src.IsDir() {
-		fmt.Println("Source is not a directory")
-		os.Exit(1)
-	}
-
-	err = filepath.Walk(dir, walker)
-	if err != nil {
-		panic(err)
-	}
-
-	for _, file := range fdb {
-		fmt.Printf("%s with %d bytes\n", file.name, file.size)
-	}
-
+	app.Run(os.Args)
 }

@@ -1,0 +1,21 @@
+#!/bin/bash
+
+path_prefix="tmptestdir"
+
+function create_files {
+  local path="${path_prefix}/$1"
+  mkdir -p ${path}
+  for d in {0..9}; do
+        echo "${d}" > "${path}/${d}"
+  done
+}
+
+for a in {a..z}; do
+  create_files "${a}"
+  for b in {a..z}; do
+    create_files "${a}/${b}"
+    for c in {a..z}; do
+      create_files "${a}/${b}/${c}"
+    done
+  done
+done
