@@ -4,8 +4,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"flag"
-	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -80,21 +80,29 @@ func RandStringBytes() string {
 }
 
 func main() {
+	log.SetFlags(0)
 	flag.Parse()
+	flag.Usage = func() {
+		log.Printf("Usage: hlifs [options] DIR\n\n")
+		flag.PrintDefaults()
+	}
+	if len(flag.Args()) != 1 {
+		flag.Usage()
+		os.Exit(1)
+	}
 	dir := flag.Arg(0)
 	src, err := os.Stat(dir)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	if !src.IsDir() {
-		fmt.Println("Source is not a directory")
-		os.Exit(1)
+		log.Fatal("Source is not a directory")
 	}
 
 	err = filepath.Walk(dir, walker)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	// Group by file size
@@ -104,7 +112,7 @@ func main() {
 	}
 
 	// If more than one file with same size:
-	// create md5sum of all files with same size
+	// create sha256sum of all files with same size
 	// compare and hardlink if possible
 	for _, sfile := range smap {
 		if len(sfile) > 1 {
@@ -124,7 +132,7 @@ func main() {
 					for _, file := range cfile {
 						// If not already hardlink of first file...
 						if first_file.dev == file.dev && first_file.inode != file.inode {
-							// TODO: Make sure new file does not exist
+							// Make sure new file does not exist
 							suffix := RandStringBytes()
 							for _, err = os.Stat(file.name + suffix); ; os.IsExist(err) {
 								suffix = RandStringBytes()
@@ -133,7 +141,7 @@ func main() {
 							err = os.Link(first_file.name, file.name)
 							if err != nil {
 								os.Rename(file.name+suffix, file.name)
-								panic(err)
+								log.Fatal(err)
 							}
 							os.Remove(file.name + suffix)
 						}
