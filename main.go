@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"flag"
 	"fmt"
@@ -16,7 +16,7 @@ const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567
 
 type FileData struct {
 	name  string // Full path
-	hash  []byte // MD5 checksum
+	hash  []byte // SHA256 checksum
 	dev   uint64 // Device ID
 	inode uint64 // Inode number
 	nlink uint64 // Number of hard links
@@ -36,7 +36,7 @@ func HashFile(filePath string) ([]byte, error) {
 	}
 	defer file.Close()
 
-	hash := md5.New()
+	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
 		return result, err
 	}

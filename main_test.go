@@ -9,13 +9,13 @@ func TestHashFile(t *testing.T) {
 	files := [...]FileData{
 		{
 			name: "test/datafile1",
-			// hash, _ := hex.DecodeString("b281ca6b889ea26281fc18d6c3ab2621")
-			hash: []byte{178, 129, 202, 107, 136, 158, 162, 98, 129, 252, 24, 214, 195, 171, 38, 33},
+			// hash, _ := hex.DecodeString("44ecd64bb65e5ff2fdbc3c4b67f9c162b0ac41930bdba201cda7c15bde64da38")
+			hash: []byte{68, 236, 214, 75, 182, 94, 95, 242, 253, 188, 60, 75, 103, 249, 193, 98, 176, 172, 65, 147, 11, 219, 162, 1, 205, 167, 193, 91, 222, 100, 218, 56},
 		},
 		{
 			name: "test/textfile1",
-			// hash, _ := hex.DecodeString("43bdd345b20cd24c3993304da5bc0770")
-			hash: []byte{67, 189, 211, 69, 178, 12, 210, 76, 57, 147, 48, 77, 165, 188, 7, 112},
+			// hash, _ := hex.DecodeString("a54c4bccfd84a80fbbcb928dd98048ef33990a437157a0ac8f7999891c6bcf7d")
+			hash: []byte{165, 76, 75, 204, 253, 132, 168, 15, 187, 203, 146, 141, 217, 128, 72, 239, 51, 153, 10, 67, 113, 87, 160, 172, 143, 121, 153, 137, 28, 107, 207, 125},
 		},
 	}
 	for _, file := range files {
