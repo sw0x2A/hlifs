@@ -80,12 +80,12 @@ func RandStringBytes() string {
 }
 
 func main() {
-	log.SetFlags(0)
-	flag.Parse()
 	flag.Usage = func() {
-		log.Printf("Usage: hlifs [options] DIR\n\n")
+		log.Printf("Usage: %s [options] DIR\n\n", os.Args[0])
 		flag.PrintDefaults()
 	}
+	log.SetFlags(0)
+	flag.Parse()
 	if len(flag.Args()) != 1 {
 		flag.Usage()
 		os.Exit(1)
