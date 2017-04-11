@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"math/rand"
 	"path/filepath"
 	"syscall"
 
 	"github.com/codegangsta/cli"
 )
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 type FileData struct {
 	name  string // Full path
@@ -69,6 +72,14 @@ func walker(path string, f os.FileInfo, err error) error {
 	return err
 }
 
+func RandStringBytes() string {
+    b := make([]byte, rand.Intn(6) + 6)
+    for i := range b {
+        b[i] = letterBytes[rand.Intn(len(letterBytes))]
+    }
+    return string(b)
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "hlifs"
@@ -114,7 +125,25 @@ func main() {
 
 					for _, cfile := range hmap {
 						if len(cfile) > 1 {
-							fmt.Printf("Files with hash: %s\n", cfile)
+							first_file := cfile[0]
+                                                        cfile := append(cfile[:0], cfile[1:]...)
+							for _, file := range cfile {
+								// If not already hardlink of first file...
+								if first_file.dev == file.dev && first_file.inode != file.inode {
+									// TODO: Make sure new file does not exist
+									suffix := RandStringBytes()
+									for !os.IsExist(file.name+suffix) {
+										suffix = RandStringBytes()
+									}
+									os.Rename(file.name, file.name+suffix)
+									err := os.Link(first_file.name, file.name)
+									if err != nil {
+										os.Rename(file.name+suffix, file.name)
+										panic(err)
+									}
+									os.Remove(file.name+suffix)
+								}
+							}
 						}
 					}
 				}
