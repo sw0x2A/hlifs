@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -28,6 +29,7 @@ type FileData struct {
 
 var fdb []*FileData
 
+// Returns hash sum of a file
 func getFileHash(filePath string) ([]byte, error) {
 	var result []byte
 	file, err := os.Open(filePath)
@@ -71,12 +73,19 @@ func walker(path string, f os.FileInfo, err error) error {
 	return err
 }
 
-func RandStringBytes() string {
-	b := make([]byte, rand.Intn(6)+6)
+// Returns random string with length between min and max
+func getRandStringBytes(min, max int) (string, error) {
+	if min <= 0 {
+		return "", fmt.Errorf("min (%d) <= 0", min)
+	}
+	if max < min {
+		return "", fmt.Errorf("max (%d) < min (%d)", max, min)
+	}
+	b := make([]byte, rand.Intn(max-min)+min)
 	for i := range b {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
-	return string(b)
+	return string(b), nil
 }
 
 func main() {
@@ -133,9 +142,9 @@ func main() {
 						// If not already hardlink of first file...
 						if first_file.dev == file.dev && first_file.inode != file.inode {
 							// Make sure new file does not exist
-							suffix := RandStringBytes()
+							suffix, _ := getRandStringBytes(8, 16)
 							for _, err = os.Stat(file.name + suffix); ; os.IsExist(err) {
-								suffix = RandStringBytes()
+								suffix, _ = getRandStringBytes(8, 16)
 							}
 							os.Rename(file.name, file.name+suffix)
 							err = os.Link(first_file.name, file.name)

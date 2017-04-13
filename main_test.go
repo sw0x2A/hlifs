@@ -36,3 +36,17 @@ func BenchmarkGetFileHash(b *testing.B) {
 		getFileHash(in)
 	}
 }
+
+func TestGetRandStringBytes(t *testing.T) {
+	pairs := [...][2]int{{1, 2}, {2, 4}}
+	for _, pair := range pairs {
+		min, max := pair[0], pair[1]
+		if x, err := getRandStringBytes(min, max); len(x) < min || len(x) > max {
+			if err != nil {
+				t.Errorf("len(getRandStringBytes(%d, %d)) = %d (%s), returned err %s", min, max, len(x), x, err)
+			} else {
+				t.Errorf("len(getRandStringBytes(%d, %d)) = %d (%s), should be between %d and %d", min, max, len(x), x, min, max)
+			}
+		}
+	}
+}
