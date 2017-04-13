@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestHashFile(t *testing.T) {
+func TestGetFileHash(t *testing.T) {
 	files := [...]FileData{
 		{
 			name: "test/datafile1",
@@ -20,7 +20,7 @@ func TestHashFile(t *testing.T) {
 	}
 	for _, file := range files {
 		in, out := file.name, file.hash
-		if x, err := HashFile(in); bytes.Compare(x, out) != 0 {
+		if x, err := getFileHash(in); bytes.Compare(x, out) != 0 {
 			if err != nil {
 				t.Errorf("Hashfile(%s) = %d returned err %s", in, x, err)
 			} else {
@@ -30,9 +30,9 @@ func TestHashFile(t *testing.T) {
 	}
 }
 
-func BenchmarkHashFile(b *testing.B) {
+func BenchmarkGetFileHash(b *testing.B) {
 	in := "test/datafile1"
 	for i := 0; i < b.N; i++ {
-		HashFile(in)
+		getFileHash(in)
 	}
 }

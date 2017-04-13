@@ -28,7 +28,7 @@ type FileData struct {
 
 var fdb []*FileData
 
-func HashFile(filePath string) ([]byte, error) {
+func getFileHash(filePath string) ([]byte, error) {
 	var result []byte
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -118,7 +118,7 @@ func main() {
 		if len(sfile) > 1 {
 			hmap := make(map[string][]*FileData)
 			for _, hfile := range sfile {
-				h, err := HashFile(hfile.name)
+				h, err := getFileHash(hfile.name)
 				hstring := hex.EncodeToString(h)
 				if err == nil {
 					hmap[hstring] = append(hmap[hstring], hfile)
