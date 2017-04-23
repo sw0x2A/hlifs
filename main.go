@@ -15,6 +15,7 @@ import (
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 
+// Data type to store path, file stats and hashsum
 type FileData struct {
 	name  string // Full path
 	hash  []byte // SHA256 checksum
@@ -46,7 +47,7 @@ func getFileHash(filePath string) ([]byte, error) {
 	return hash.Sum(result), nil
 }
 
-func CompareFileData(a, b FileData) bool {
+func compareFileData(a, b FileData) bool {
 	if &a == &b {
 		return true
 	}
@@ -136,18 +137,18 @@ func main() {
 
 			for _, cfile := range hmap {
 				if len(cfile) > 1 {
-					first_file := cfile[0]
+					firstFile := cfile[0]
 					cfile := append(cfile[:0], cfile[1:]...)
 					for _, file := range cfile {
 						// If not already hardlink of first file...
-						if first_file.dev == file.dev && first_file.inode != file.inode {
+						if firstFile.dev == file.dev && firstFile.inode != file.inode {
 							// Make sure new file does not exist
 							suffix, _ := getRandStringBytes(8, 16)
 							for _, err = os.Stat(file.name + suffix); ; os.IsExist(err) {
 								suffix, _ = getRandStringBytes(8, 16)
 							}
 							os.Rename(file.name, file.name+suffix)
-							err = os.Link(first_file.name, file.name)
+							err = os.Link(firstFile.name, file.name)
 							if err != nil {
 								os.Rename(file.name+suffix, file.name)
 								log.Fatal(err)
