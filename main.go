@@ -15,7 +15,7 @@ import (
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 
-// Data type to store path, file stats and hashsum
+// FileData type stores information about path, stats and hashsum of a file
 type FileData struct {
 	name  string // Full path
 	hash  []byte // SHA256 checksum
