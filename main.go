@@ -28,7 +28,34 @@ type FileData struct {
 	size  int64  // File size in bytes
 }
 
-var fdb []*FileData
+type FileGroup []*FileData
+
+type OrderedFileGroup map[string]FileGroup // map[string][]*FileData
+
+var fdb FileGroup
+
+func (fg FileGroup) Len() int {
+	return len(fg)
+}
+
+func (fg FileGroup) Less(i, j int) bool {
+	if fg[i].size < fg[j].size {
+		return true
+	}
+	return false
+}
+
+func (fg FileGroup) Swap(i, j int) {
+	fg[i], fg[j] = fg[j], fg[i]
+}
+
+func (fg FileGroup) OrderBySize() map[int64][]*FileData {
+	smap := make(map[int64][]*FileData)
+	for _, file := range fg {
+		smap[file.size] = append(smap[file.size], file)
+	}
+	return smap
+}
 
 // Returns hash sum of a file
 func getFileHash(filePath string) ([]byte, error) {
