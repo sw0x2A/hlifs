@@ -70,10 +70,11 @@ func (fg FileGroup) IndexesPerSameHash() map[string][]int {
 func (fg FileGroup) HardLink(i, j int) error {
 	// Make sure new file does not exist
 	suffix, _ := getRandStringBytes(8, 16)
-	for _, err := os.Stat(fg[j].name + suffix); ; os.IsExist(err) {
-		fmt.Println(fg[j].name + suffix)
-		suffix, _ = getRandStringBytes(8, 16)
-	}
+	// FIXME: Endless loop
+	// for _, err := os.Stat(fg[j].name + suffix); ; os.IsExist(err) {
+	// 	fmt.Println(fg[j].name + suffix)
+	// 	suffix, _ = getRandStringBytes(8, 16)
+	// }
 	os.Rename(fg[j].name, fg[j].name+suffix)
 	err := os.Link(fg[i].name, fg[j].name)
 	if err != nil {
