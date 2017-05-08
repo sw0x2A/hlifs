@@ -30,9 +30,8 @@ type FileData struct {
 
 type FileGroup []*FileData
 
-type OrderedFileGroup map[string]FileGroup // map[string][]*FileData
-
-var fdb FileGroup
+//var ofg = make(map[string][]*FileData)
+var ofg = make(map[string]FileGroup)
 
 func (fg FileGroup) Len() int {
 	return len(fg)
@@ -49,12 +48,40 @@ func (fg FileGroup) Swap(i, j int) {
 	fg[i], fg[j] = fg[j], fg[i]
 }
 
-func (fg FileGroup) OrderBySize() map[int64][]*FileData {
-	smap := make(map[int64][]*FileData)
-	for _, file := range fg {
-		smap[file.size] = append(smap[file.size], file)
+func (fg FileGroup) CalcAllHashes() {
+	for _, f := range fg {
+		h, err := getFileHash(f.name)
+		if err != nil {
+			log.Fatal(err)
+		}
+		f.hash = h
 	}
-	return smap
+}
+
+func (fg FileGroup) IndexesPerSameHash() map[string][]int {
+	imap := make(map[string][]int)
+	for i, f := range fg {
+		fh := hex.EncodeToString(f.hash)
+		imap[fh] = append(imap[fh], i)
+	}
+	return imap
+}
+
+func (fg FileGroup) HardLink(i, j int) error {
+	// Make sure new file does not exist
+	suffix, _ := getRandStringBytes(8, 16)
+	for _, err := os.Stat(fg[j].name + suffix); ; os.IsExist(err) {
+		fmt.Println(fg[j].name + suffix)
+		suffix, _ = getRandStringBytes(8, 16)
+	}
+	os.Rename(fg[j].name, fg[j].name+suffix)
+	err := os.Link(fg[i].name, fg[j].name)
+	if err != nil {
+		os.Rename(fg[j].name+suffix, fg[j].name)
+		return err
+	}
+	os.Remove(fg[j].name + suffix)
+	return nil
 }
 
 // Returns hash sum of a file
@@ -85,6 +112,7 @@ func compareFileData(a, b FileData) bool {
 }
 
 func walker(path string, f os.FileInfo, err error) error {
+	knownInodes := make(map[uint64]bool)
 	if !f.IsDir() {
 		fd := FileData{
 			name:  path,
@@ -96,7 +124,13 @@ func walker(path string, f os.FileInfo, err error) error {
 			gid:   f.Sys().(*syscall.Stat_t).Gid,
 			size:  f.Size(),
 		}
-		fdb = append(fdb, &fd)
+		//FIXME:Make sure inode and dev are same
+		if !knownInodes[fd.inode] {
+			knownInodes[fd.inode] = true
+			//FIXME: Better key? Concat int?
+			key := fmt.Sprintf("%v_%v_%v_%v_%v", fd.dev, fd.mode, fd.uid, fd.gid, fd.size)
+			ofg[key] = append(ofg[key], &fd)
+		}
 	}
 	return err
 }
@@ -142,47 +176,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Group by file size
-	smap := make(map[int64][]*FileData)
-	for _, file := range fdb {
-		smap[file.size] = append(smap[file.size], file)
-	}
-
-	// If more than one file with same size:
-	// create sha256sum of all files with same size
-	// compare and hardlink if possible
-	for _, sfile := range smap {
-		if len(sfile) > 1 {
-			hmap := make(map[string][]*FileData)
-			for _, hfile := range sfile {
-				h, err := getFileHash(hfile.name)
-				hstring := hex.EncodeToString(h)
-				if err == nil {
-					hmap[hstring] = append(hmap[hstring], hfile)
-				}
-			}
-
-			for _, cfile := range hmap {
-				if len(cfile) > 1 {
-					firstFile := cfile[0]
-					cfile := append(cfile[:0], cfile[1:]...)
-					for _, file := range cfile {
-						// If not already hardlink of first file...
-						if firstFile.dev == file.dev && firstFile.inode != file.inode {
-							// Make sure new file does not exist
-							suffix, _ := getRandStringBytes(8, 16)
-							for _, err = os.Stat(file.name + suffix); ; os.IsExist(err) {
-								suffix, _ = getRandStringBytes(8, 16)
-							}
-							os.Rename(file.name, file.name+suffix)
-							err = os.Link(firstFile.name, file.name)
-							if err != nil {
-								os.Rename(file.name+suffix, file.name)
-								log.Fatal(err)
-							}
-							os.Remove(file.name + suffix)
-						}
-					}
+	// ofg has been grouped by dev, mode, uid, gid and size by walker func
+	for key, fg := range ofg {
+		fmt.Println(key, fg)
+		if fg.Len() > 1 {
+			fg.CalcAllHashes()
+			for _, hlable := range fg.IndexesPerSameHash() {
+				fi := hlable[0]
+				test := append(hlable[:0], hlable[1:]...)
+				for _, i := range test {
+					fg.HardLink(fi, i)
 				}
 			}
 		}
