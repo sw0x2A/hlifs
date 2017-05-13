@@ -113,7 +113,7 @@ func compareFileData(a, b FileData) bool {
 }
 
 func walker(path string, f os.FileInfo, err error) error {
-	knownInodes := make(map[uint64]bool)
+	knownInodes := make(map[string]bool)
 	if !f.IsDir() {
 		fd := FileData{
 			name:  path,
@@ -125,12 +125,19 @@ func walker(path string, f os.FileInfo, err error) error {
 			gid:   f.Sys().(*syscall.Stat_t).Gid,
 			size:  f.Size(),
 		}
-		//FIXME:Make sure inode and dev are same
-		if !knownInodes[fd.inode] {
-			knownInodes[fd.inode] = true
-			//FIXME: Better key? Concat int?
-			key := fmt.Sprintf("%v_%v_%v_%v_%v", fd.dev, fd.mode, fd.uid, fd.gid, fd.size)
+		// Only add new files if we haven't seen their dev/inode combination yet.
+		// They are already hard-links
+		ikey := fmt.Sprintf("%x_%x", fd.inode, fd.dev)
+		if !knownInodes[ikey] {
+			knownInodes[ikey] = true
+			key := fmt.Sprintf("%x_%x_%x_%x_%x", fd.dev, fd.mode, fd.uid, fd.gid, fd.size)
 			ofg[key] = append(ofg[key], &fd)
+		}
+	}
+	// Remove all keys that have only one file (nothing to hard-link)
+	for k, fg := range ofg {
+		if fg.Len() < 2 {
+			delete(ofg, k)
 		}
 	}
 	return err
