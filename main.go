@@ -30,7 +30,6 @@ type FileData struct {
 
 type FileGroup []*FileData
 
-//var ofg = make(map[string][]*FileData)
 var ofg = make(map[string]FileGroup)
 
 func (fg FileGroup) Len() int {
@@ -135,11 +134,13 @@ func walker(path string, f os.FileInfo, err error) error {
 		}
 	}
 	// Remove all keys that have only one file (nothing to hard-link)
-	for k, fg := range ofg {
-		if fg.Len() < 2 {
-			delete(ofg, k)
-		}
-	}
+	// for k, fg := range ofg {
+	// 	fmt.Println(k, fg.Len(), fg)
+	// 	// FIXME: fg.Len() always 1. Why?
+	// 	if fg.Len() <= 1 {
+	// 		delete(ofg, k)
+	// 	}
+	// }
 	return err
 }
 
@@ -185,8 +186,7 @@ func main() {
 	}
 
 	// ofg has been grouped by dev, mode, uid, gid and size by walker func
-	for key, fg := range ofg {
-		fmt.Println(key, fg)
+	for _, fg := range ofg {
 		if fg.Len() > 1 {
 			fg.CalcAllHashes()
 			for _, hlable := range fg.IndexesPerSameHash() {

@@ -5,6 +5,21 @@ import (
 	"testing"
 )
 
+func TestFgLen(t *testing.T) {
+	in := FileGroup{
+		&FileData{
+			name: "test/datafile1",
+		},
+		&FileData{
+			name: "test/textfile1",
+		},
+	}
+	out := 2
+	if x := in.Len(); x != out {
+		t.Errorf("fg.Len() = %d should be %d", x, out)
+	}
+}
+
 func TestGetFileHash(t *testing.T) {
 	files := [...]FileData{
 		{
